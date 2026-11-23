@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Airaria</title>
+<meta name="description" content="Play music with your hands in the air. Airaria uses your camera to track your hands and turns movement into sound, right in the browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF; --soft:#F5F5F7; --line:#E3E3E8; --ink:#1D1D1F; --sub:#6E6E73; --accent:#FF4F1F; --accent-soft:#FFE9E2;
+  --f:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 var(--f);letter-spacing:-.011em;
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3,p{margin:0}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+
+header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.86);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);margin-inline:calc(-1 * max(20px,env(safe-area-inset-left,0px)));padding-inline:max(20px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:52px}
+.word{font-weight:700;font-size:19px;letter-spacing:-.03em;display:flex;align-items:center;gap:8px;text-decoration:none}
+.word i{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--ink);position:relative;display:inline-block}
+.word i::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--accent)}
+header nav{display:flex;gap:22px;font-size:14px;color:var(--sub)}
+header nav a{text-decoration:none}
+header nav a:hover{color:var(--ink)}
+
+.hero{text-align:center;padding-block:64px 36px;display:grid;gap:18px;justify-items:center}
+.hero h1{font-size:clamp(44px,7.4vw,84px);line-height:1.03;font-weight:750;letter-spacing:-.045em;max-width:12ch}
+.hero p{font-size:clamp(19px,2vw,23px);color:var(--sub);max-width:34ch;line-height:1.38}
+.cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.btn{border:0;border-radius:999px;padding:12px 22px;font-size:17px;font-weight:500;cursor:pointer;background:var(--ink);color:#fff}
+.btn.ghost{background:transparent;color:var(--accent);padding-inline:8px}
+.btn.accent{background:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* studio */
+.studio{display:grid;gap:14px;margin-bottom:80px}
+.stage{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:28px;overflow:hidden;background:var(--soft);touch-action:none;user-select:none;-webkit-user-select:none}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage video{display:none}
+.hud{position:absolute;left:18px;top:16px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;font-size:13px;font-weight:600}
+.pill{background:rgba(255,255,255,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:6px 12px;color:var(--ink)}
+.pill.rec{background:var(--accent);color:#fff}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:rgba(245,245,247,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.overlay div{display:grid;gap:12px;justify-items:center;max-width:36ch}
+.overlay h2{font-size:28px;letter-spacing:-.03em;font-weight:700}
+.overlay p{color:var(--sub);font-size:16px}
+@media (max-width:700px){.stage{aspect-ratio:3/4;border-radius:22px}}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:var(--soft);border-radius:12px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 16px;border-radius:9px;font-size:15px;font-weight:500;cursor:pointer;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.06)}
+.group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.group label{font-size:13px;color:var(--sub)}
+select{appearance:none;-webkit-appearance:none;background:var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236E6E73' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;border:0;border-radius:10px;padding:8px 32px 8px 12px;font-size:15px;cursor:pointer}
+.small{border:0;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;background:var(--soft);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.small .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.small[aria-pressed="true"]{background:var(--accent);color:#fff}
+.small[aria-pressed="true"] .dot{background:#fff}
+.loopbar{height:4px;border-radius:2px;background:var(--soft);overflow:hidden}
+.loopbar i{display:block;height:100%;width:0;background:var(--ink)}
+.status{font-size:14px;color:var(--sub);min-height:20px}
+.status a{color:var(--accent);font-weight:600}
+
+/* how */
+.how{padding-block:24px 90px;display:grid;gap:40px}
+.how h2{font-size:clamp(32px,4.4vw,48px);letter-spacing:-.04em;line-height:1.08;text-align:center;font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.steps div{background:var(--soft);border-radius:24px;padding:28px;display:grid;gap:10px;align-content:start}
+.steps b{font-size:13px;color:var(--accent);font-weight:600}
+.steps h3{font-size:21px;letter-spacing:-.02em;font-weight:650}
+.steps p{color:var(--sub);font-size:16px}
+@media (max-width:760px){.steps{grid-template-columns:minmax(0,1fr)}}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;text-align:center}
+.facts strong{display:block;font-size:44px;letter-spacing:-.04em;font-weight:700}
+.facts span{color:var(--sub);font-size:15px}
+@media (max-width:760px){.facts{grid-template-columns:minmax(0,1fr)}}
+footer{border-top:1px solid var(--line);padding-block:22px 40px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--sub)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="word" href="#top"><i aria-hidden="true"></i>Airaria</a>
+  <nav><a href="#play">Play</a><a href="#how">How it works</a></nav>
+</div></header>
+
+<main class="wrap" id="top">
+  <section class="hero">
+    <h1>Play music with your hands.</h1>
+    <p>No instrument. Nothing to install. Your camera follows 21 points on each hand and turns every pinch into sound.</p>
+    <div class="cta"><button class="btn" id="heroStart" type="button">Start playing</button><a class="btn ghost" href="#how">How it works ›</a></div>
+  </section>
+
+  <section class="studio" id="play">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Instrument area. Pinch or click a cell to play a note."></canvas>
+      <video id="cam" playsinline muted></video>
+      <div class="hud"><span class="pill" id="hudMode">Keys · A minor pentatonic</span><span class="pill" id="hudHands">Mouse</span></div>
+      <div class="overlay" id="overlay">
+        <div>
+          <h2>Turn on your camera</h2>
+          <p>Hold your hands up and pinch your thumb and index finger together to play. The video never leaves your device.</p>
+          <div class="cta"><button class="btn accent" id="startBtn" type="button">Turn on camera</button><button class="btn ghost" id="mouseBtn" type="button">Use mouse or touch</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="loopbar" aria-hidden="true"><i id="loopProg"></i></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Instrument">
+        <button type="button" data-mode="keys" aria-pressed="true">Keys</button>
+        <button type="button" data-mode="theremin" aria-pressed="false">Theremin</button>
+        <button type="button" data-mode="drums" aria-pressed="false">Drums</button>
+      </div>
+      <div class="group">
+        <label for="scale">Scale</label>
+        <select id="scale">
+          <option value="minpent">A minor pentatonic</option>
+          <option value="major">C major</option>
+          <option value="blues">E blues</option>
+          <option value="dorian">D dorian</option>
+          <option value="japan">A in sen</option>
+        </select>
+        <label for="sound">Sound</label>
+        <select id="sound"><option value="glass">Glass</option><option value="pluck">Pluck</option><option value="pad">Pad</option><option value="bass">Bass</option></select>
+      </div>
+      <div class="group">
+        <button class="small" id="loopBtn" type="button" aria-pressed="false"><span class="dot"></span>Loop</button>
+        <button class="small" id="clearBtn" type="button">Clear loops</button>
+        <button class="small" id="clipBtn" type="button" aria-pressed="false">Record clip</button>
+      </div>
+    </div>
+    <p class="status" id="status" aria-live="polite">Click or tap the cells to try it now, or turn on the camera to play in the air.</p>
+  </section>
+
+  <section class="how" id="how">
+    <h2>Three moves. That's the whole lesson.</h2>
+    <div class="steps">
+      <div><b>1</b><h3>Hold up your hands</h3><p>Sit about an arm's length from the screen in good light. Both hands are tracked at once, up to 30 times a second.</p></div>
+      <div><b>2</b><h3>Pinch to play</h3><p>Touch your thumb to your index finger inside a cell. Left is low, right is high. Every note fits the scale, so nothing sounds wrong.</p></div>
+      <div><b>3</b><h3>Loop and layer</h3><p>Press Loop, play two bars, and it repeats. Add drums on top, then a melody. Record a clip to share.</p></div>
+    </div>
+    <div class="facts">
+      <div><strong>21</strong><span>points tracked on each hand</span></div>
+      <div><strong>0</strong><span>bytes of video uploaded</span></div>
+      <div><strong>3</strong><span>instruments: keys, theremin, drums</span></div>
+    </div>
+  </section>
+
+  <footer><span>Airaria · made in Columbia, South Carolina</span><span>Hand tracking runs on your device with Google's open MediaPipe model. Contact: hsalman@email.sc.edu</span></footer>
+</main>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+const stage = $('stage'), view = $('view'), g = view.getContext('2d'), cam = $('cam');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- music ---------- */
+const SCALES = {
+  minpent:{root:57, steps:[0,3,5,7,10], name:'A minor pentatonic'},
+  major:{root:60, steps:[0,2,4,5,7,9,11], name:'C major'},
+  blues:{root:52, steps:[0,3,5,6,7,10], name:'E blues'},
+  dorian:{root:62, steps:[0,2,3,5,7,9,10], name:'D dorian'},
+  japan:{root:57, steps:[0,1,5,7,10], name:'A in sen'}
+};
+const NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const COLS = 8, ROWS = 2;
+const mtof = m => 440*Math.pow(2,(m-69)/12);
+function noteAt(col,row){ const s = SCALES[$('scale').value]; const idx = col + (ROWS-1-row)*COLS; const oct = Math.floor(idx/s.steps.length); return s.root + s.steps[idx % s.steps.length] + 12*oct; }
+const nname = m => NAMES[m%12] + (Math.floor(m/12)-1);
+
+/* ---------- audio engine ---------- */
+let ac = null, master, comp, verbSend, dest;
+function audio(){
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return ac; }
+  ac = new (window.AudioContext||window.webkitAudioContext)();
+  comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+  master = ac.createGain(); master.gain.value = .8; master.connect(comp); comp.connect(ac.destination);
+  dest = ac.createMediaStreamDestination(); comp.connect(dest);
+  const len = ac.sampleRate*2.6, ir = ac.createBuffer(2,len,ac.sampleRate);
+  for (let c=0;c<2;c++){ const d = ir.getChannelData(c); for (let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len,3.2); }
+  const verb = ac.createConvolver(); verb.buffer = ir; verbSend = ac.createGain(); verbSend.gain.value = .32; verbSend.connect(verb); verb.connect(master);
+  return ac;
+}
+function out(node, wet=1){ node.connect(master); const s = ac.createGain(); s.gain.value = wet; node.connect(s); s.connect(verbSend); }
+function playNote(m, vel=.8, when=0){
+  audio(); const t = Math.max(ac.currentTime, when||ac.currentTime), f = mtof(m), kind = $('sound').value;
+  const env = ac.createGain(); env.gain.value = 0; out(env, kind==='bass'?.15:1);
+  if (kind==='glass'){
+    [[1,.6],[2.001,.22],[3.98,.06]].forEach(([r,a]) => { const o = ac.createOscillator(); o.type='sine'; o.frequency.value = f*r; const gg = ac.createGain(); gg.gain.value = a; o.connect(gg); gg.connect(env); o.start(t); o.stop(t+2.4); });
+    env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*.7,t+.006); env.gain.exponentialRampToValueAtTime(.0008,t+2.2);
+  } else if (kind==='pluck'){
+    const o = ac.createOscillator(); o.type='sawtooth'; o.frequency.value=f; const lp = ac.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=3; lp.frequency.setValueAtTime(5200,t); lp.frequency.exponentialRampToValueAtTime(380,t+.5); o.connect(lp); lp.connect(env); o.start(t); o.stop(t+1.1);
+    env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*.42,t+.004); env.gain.exponentialRampToValueAtTime(.0008,t+1);
+  } else if (kind==='pad'){
+    [-7,7].forEach(d => { const o = ac.createOscillator(); o.type='triangle'; o.frequency.value=f; o.detune.value=d; o.connect(env); o.start(t); o.stop(t+2.6); });
+    env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*.32,t+.18); env.gain.setTargetAtTime(0,t+.5,.5);
+  } else {
+    const o = ac.createOscillator(); o.type='square'; o.frequency.value=f/2; const lp = ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(900,t); lp.frequency.exponentialRampToValueAtTime(160,t+.35); o.connect(lp); lp.connect(env); o.start(t); o.stop(t+.8);
+    env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*.5,t+.005); env.gain.exponentialRampToValueAtTime(.0008,t+.7);
+  }
+}
+let noiseBuf = null;
+function noise(){ if (noiseBuf) return noiseBuf; noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return noiseBuf; }
+const DRUMS = ['Kick','Snare','Hat','Clap','Tom','Rim','Open hat','Shaker'];
+function playDrum(i, vel=.9, when=0){
+  audio(); const t = Math.max(ac.currentTime, when||ac.currentTime); const env = ac.createGain(); out(env, .12);
+  const nz = (hp, lp, dur, amp, t0=t) => { const s = ac.createBufferSource(); s.buffer = noise(); const f1 = ac.createBiquadFilter(); f1.type='highpass'; f1.frequency.value=hp; const f2 = ac.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=lp; const e = ac.createGain(); e.gain.setValueAtTime(amp*vel,t0); e.gain.exponentialRampToValueAtTime(.0008,t0+dur); s.connect(f1); f1.connect(f2); f2.connect(e); e.connect(env); s.start(t0); s.stop(t0+dur+.02); };
+  const tone = (f0, f1, dur, amp, type='sine') => { const o = ac.createOscillator(); o.type=type; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur*.8); const e = ac.createGain(); e.gain.setValueAtTime(amp*vel,t); e.gain.exponentialRampToValueAtTime(.0008,t+dur); o.connect(e); e.connect(env); o.start(t); o.stop(t+dur+.02); };
+  env.gain.value = 1;
+  if (i===0){ tone(155,42,.45,1); }
+  else if (i===1){ tone(210,160,.14,.45,'triangle'); nz(1200,9000,.2,.6); }
+  else if (i===2){ nz(7000,16000,.05,.45); }
+  else if (i===3){ [0,.012,.024].forEach(d => nz(900,5000,.03,.5,t+d)); nz(900,5000,.22,.4,t+.036); }
+  else if (i===4){ tone(190,95,.35,.8); }
+  else if (i===5){ tone(1700,1600,.03,.5,'square'); nz(2000,9000,.03,.25); }
+  else if (i===6){ nz(6000,16000,.35,.35); }
+  else { nz(4000,12000,.09,.3); }
+}
+/* theremin voice */
+let th = null;
+function thereminOn(){ audio(); if (th) return; const o1 = ac.createOscillator(), o2 = ac.createOscillator(); o1.type='sine'; o2.type='triangle'; const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value=5.2; lg.gain.value=4; lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
+  const lp = ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2000; const m2 = ac.createGain(); m2.gain.value=.25; const v = ac.createGain(); v.gain.value=0; o1.connect(lp); o2.connect(m2); m2.connect(lp); lp.connect(v); out(v,.8); [o1,o2,lfo].forEach(o=>o.start()); th = {o1,o2,lfo,lp,v}; }
+function thereminSet(freq, vol, bright){ if (!th) return; const t = ac.currentTime; th.o1.frequency.setTargetAtTime(freq,t,.03); th.o2.frequency.setTargetAtTime(freq,t,.03); th.v.gain.setTargetAtTime(vol*.38,t,.05); th.lp.frequency.setTargetAtTime(500+bright*5000,t,.05); }
+function thereminOff(){ if (!th) return; const t = ac.currentTime; th.v.gain.setTargetAtTime(0,t,.05); const x = th; th = null; setTimeout(() => [x.o1,x.o2,x.lfo].forEach(o=>{ try{o.stop();}catch(e){} }), 400); }
+
+/* ---------- loops ---------- */
+const BPM = 96, BEAT = 60/BPM, BARS = 2, LOOP = BARS*4*BEAT;
+let loops = [], recording = null, loopStart = null, schedTimer = null, nextLoopAt = 0;
+function emit(ev){ if (ev.type==='note') playNote(ev.m, ev.v); else playDrum(ev.d, ev.v);
+  if (recording && recording.armedAt <= ac.currentTime){ let rel = ac.currentTime - recording.armedAt; if (rel < LOOP){ const q = BEAT/4; rel = Math.round(rel/q)*q % LOOP; recording.events.push({...ev, at:rel}); } } }
+function scheduler(){
+  if (!ac) return; const now = ac.currentTime;
+  if (loopStart === null) return;
+  while (nextLoopAt < now + .2){
+    loops.forEach(L => L.forEach(ev => { const t = nextLoopAt + ev.at; if (t >= now - .01){ ev.type==='note' ? playNote(ev.m, ev.v*.85, t) : playDrum(ev.d, ev.v*.85, t); } }));
+    if (recording && recording.armedAt === nextLoopAt){}
+    nextLoopAt += LOOP;
+  }
+}
+function click(t, accent){ const o = ac.createOscillator(), e = ac.createGain(); o.frequency.value = accent?1760:1320; e.gain.setValueAtTime(.12,t); e.gain.exponentialRampToValueAtTime(.0005,t+.05); o.connect(e); e.connect(master); o.start(t); o.stop(t+.06); }
+$('loopBtn').onclick = () => {
+  audio(); if (recording) return;
+  const now = ac.currentTime;
+  if (loopStart === null){ loopStart = now + 4*BEAT; nextLoopAt = loopStart; for (let i=0;i<4;i++) click(now + i*BEAT, i===0); }
+  // arm at the start of the next loop cycle
+  let armAt = loopStart; while (armAt < now + .05) armAt += LOOP;
+  if (loops.length){ for (let i=0;i<4;i++) click(armAt - 4*BEAT + i*BEAT, i===0); }
+  recording = {armedAt: armAt, events: []};
+  $('loopBtn').setAttribute('aria-pressed', true);
+  setStatus('Get ready. Recording starts on the next bar and lasts two bars.');
+  if (!schedTimer) schedTimer = setInterval(scheduler, 25);
+};
+$('clearBtn').onclick = () => { loops = []; recording = null; loopStart = null; $('loopBtn').setAttribute('aria-pressed', false); setStatus('Loops cleared.'); };
+function loopTick(){
+  if (!ac || loopStart === null){ $('loopProg').style.width = '0'; return; }
+  const now = ac.currentTime; const ph = ((now - loopStart) % LOOP + LOOP) % LOOP; $('loopProg').style.width = (now < loopStart ? 0 : ph/LOOP*100) + '%';
+  if (recording){ if (now >= recording.armedAt + LOOP){ if (recording.events.length){ loops.push(recording.events); const c0 = recording.armedAt + LOOP; recording.events.forEach(ev => { const t = c0 + ev.at; if (t >= now - .01) ev.type==='note' ? playNote(ev.m, ev.v*.85, t) : playDrum(ev.d, ev.v*.85, t); }); } setStatus(recording.events.length ? 'Loop '+loops.length+' saved. Press Loop again to add another layer.' : 'Nothing was played, so no loop was saved.'); recording = null; $('loopBtn').setAttribute('aria-pressed', false); }
+    else if (now >= recording.armedAt) setStatus('Recording… '+Math.ceil(recording.armedAt + LOOP - now)+' s'); }
+}
+
+/* ---------- clip recording ---------- */
+let rec = null, chunks = [];
+$('clipBtn').onclick = () => {
+  if (rec){ rec.stop(); return; }
+  audio(); const vs = view.captureStream ? view.captureStream(30) : null; if (!vs || !window.MediaRecorder){ setStatus('This browser cannot record clips.'); return; }
+  const stream = new MediaStream([...vs.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const type = ['video/mp4;codecs=avc1','video/webm;codecs=vp9,opus','video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  rec = new MediaRecorder(stream, type ? {mimeType:type} : undefined); chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = () => { const blob = new Blob(chunks, {type: rec.mimeType || 'video/webm'}); const url = URL.createObjectURL(blob); const ext = (rec.mimeType||'').includes('mp4') ? 'mp4' : 'webm'; const st = $('status'); st.textContent = 'Clip ready. '; const a = document.createElement('a'); a.href = url; a.download = 'airaria-clip.'+ext; a.textContent = 'Download clip'; st.appendChild(a); rec = null; $('clipBtn').setAttribute('aria-pressed', false); $('clipBtn').textContent = 'Record clip'; };
+  rec.start(); $('clipBtn').setAttribute('aria-pressed', true); $('clipBtn').textContent = 'Stop clip'; setStatus('Recording a clip with sound. Press Stop clip when done.');
+};
+
+/* ---------- UI state ---------- */
+let mode = 'keys', source = 'mouse';
+function setStatus(t){ $('status').textContent = t; }
+function hud(){ $('hudMode').textContent = mode==='drums' ? 'Drums · '+BPM+' BPM' : (mode==='keys'?'Keys':'Theremin') + ' · ' + SCALES[$('scale').value].name; }
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x===b)); if (mode!=='theremin') thereminOff(); hud(); });
+$('scale').onchange = hud; hud();
+
+/* ---------- hand tracking ---------- */
+let landmarker = null, lastVT = -1, hands = [];
+async function startCamera(){
+  $('overlay').hidden = true; setStatus('Starting camera and loading the hand tracker…'); audio();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false});
+    cam.srcObject = stream; await cam.play();
+  } catch(e){ $('overlay').hidden = false; setStatus('The camera is blocked ('+(e.name||'error')+'). Allow it in your browser, or use mouse and touch instead.'); return; }
+  try {
+    const { FilesetResolver, HandLandmarker } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+    const fs = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    const opts = d => ({ baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task', delegate:d }, runningMode:'VIDEO', numHands:2, minHandDetectionConfidence:.6, minTrackingConfidence:.5 });
+    try { landmarker = await HandLandmarker.createFromOptions(fs, opts('GPU')); } catch(e){ landmarker = await HandLandmarker.createFromOptions(fs, opts('CPU')); }
+    source = 'camera'; $('hudHands').textContent = 'No hands'; setStatus('Hold your hands up. Pinch your thumb and index finger to play.');
+  } catch(e){ setStatus('The hand tracker could not load. Check your connection and reload. Mouse and touch still work.'); console.warn(e); }
+}
+$('startBtn').onclick = startCamera;
+$('heroStart').onclick = () => { $('play').scrollIntoView({behavior: reduce?'auto':'smooth', block:'center'}); startCamera(); };
+$('mouseBtn').onclick = () => { $('overlay').hidden = true; audio(); setStatus('Click or tap a cell to play. Drag across in Theremin mode.'); };
+
+/* ---------- geometry ---------- */
+let W = 0, H = 0, DPR = 1;
+function size(){ const r = stage.getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio||1); W = r.width; H = r.height; view.width = Math.round(W*DPR); view.height = Math.round(H*DPR); g.setTransform(DPR,0,0,DPR,0,0); }
+new ResizeObserver(size).observe(stage); size();
+function videoRect(){ const vw = cam.videoWidth||16, vh = cam.videoHeight||9; const s = Math.max(W/vw, H/vh); const dw = vw*s, dh = vh*s; return {x:(W-dw)/2, y:(H-dh)/2, w:dw, h:dh}; }
+const toScreen = (lm, vr) => ({x: vr.x + (1-lm.x)*vr.w, y: vr.y + lm.y*vr.h});
+const cellAt = (x,y) => ({c: Math.min(COLS-1, Math.max(0, Math.floor(x/W*COLS))), r: Math.min(ROWS-1, Math.max(0, Math.floor(y/H*ROWS)))});
+const PADS = 8; // drums: 4 x 2
+const padAt = (x,y) => Math.min(3,Math.max(0,Math.floor(x/W*4))) + 4*Math.min(1,Math.max(0,Math.floor(y/H*2)));
+
+/* ---------- triggering ---------- */
+const flashes = []; const ripples = [];
+function trigger(x, y, vel){
+  if (mode==='keys'){ const {c,r} = cellAt(x,y); const m = noteAt(c,r); emit({type:'note', m, v:vel}); flashes.push({k:'c'+c+'_'+r, t:performance.now()}); ripples.push({x,y,t:performance.now(),label:nname(m)}); }
+  else if (mode==='drums'){ const p = padAt(x,y); emit({type:'drum', d:p, v:vel}); flashes.push({k:'p'+p, t:performance.now()}); ripples.push({x,y,t:performance.now(),label:DRUMS[p]}); }
+}
+// pointer fallback
+let pDown = false;
+stage.addEventListener('pointerdown', e => { if (!$('overlay').hidden) return; const r = stage.getBoundingClientRect(); const x = e.clientX-r.left, y = e.clientY-r.top; pDown = true; stage.setPointerCapture(e.pointerId); if (mode==='theremin'){ thereminOn(); pointerTh(x,y); } else trigger(x,y,.8); });
+stage.addEventListener('pointermove', e => { if (!pDown || mode!=='theremin') return; const r = stage.getBoundingClientRect(); pointerTh(e.clientX-r.left, e.clientY-r.top); });
+const endP = () => { pDown = false; if (mode==='theremin' && source!=='camera') thereminOff(); };
+stage.addEventListener('pointerup', endP); stage.addEventListener('pointercancel', endP);
+let thX = null, thY = null;
+function thFreq(x){ const s = SCALES[$('scale').value]; const span = 24; let semi = x/W*span; const snap = []; for (let o=0;o<3;o++) s.steps.forEach(st => snap.push(st+12*o)); let best = snap.reduce((a,b) => Math.abs(b-semi)<Math.abs(a-semi)?b:a); semi = semi + (best-semi)*.7; return mtof(s.root - 12 + 12 + semi); }
+function pointerTh(x,y){ thX = x; thY = y; thereminSet(thFreq(x), Math.max(.15, 1 - y/H), 1 - y/H); }
+
+// keyboard
+const KEYS = 'asdfghjk';
+addEventListener('keydown', e => { if (e.repeat || e.target.tagName==='SELECT') return; const i = KEYS.indexOf(e.key.toLowerCase()); if (i<0) return; if (!$('overlay').hidden){ $('overlay').hidden = true; } const x = (i+.5)/COLS*W, y = H*.75; trigger(x,y,.8); });
+
+/* ---------- hand state ---------- */
+const handState = [{pinched:false},{pinched:false}];
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const d2 = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+
+/* ---------- draw ---------- */
+const ACC = '#FF4F1F';
+function draw(){
+  requestAnimationFrame(draw);
+  const now = performance.now();
+  loopTick();
+  // tracking
+  if (landmarker && cam.readyState >= 2 && cam.currentTime !== lastVT){ lastVT = cam.currentTime; try { const r = landmarker.detectForVideo(cam, now); hands = r.landmarks || []; } catch(e){} }
+  g.clearRect(0,0,W,H);
+  const vr = videoRect();
+  if (source==='camera' && cam.readyState >= 2){
+    g.save(); g.translate(W,0); g.scale(-1,1); g.drawImage(cam, W - vr.x - vr.w, vr.y, vr.w, vr.h); g.restore();
+    g.fillStyle = 'rgba(255,255,255,.42)'; g.fillRect(0,0,W,H);
+  } else { g.fillStyle = '#F5F5F7'; g.fillRect(0,0,W,H); }
+  // zones
+  g.lineWidth = 1; g.font = '600 13px Inter, sans-serif'; g.textBaseline = 'bottom';
+  const live = new Set(flashes.filter(f => now - f.t < 260).map(f => f.k));
+  if (mode==='keys'){
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){ const x = c/COLS*W, y = r/ROWS*H, w = W/COLS, h = H/ROWS; const key = 'c'+c+'_'+r; const f = flashes.filter(fl => fl.k===key).pop(); const a = f ? Math.max(0, 1-(now-f.t)/420) : 0;
+      if (a>0){ g.fillStyle = `rgba(255,79,31,${.22*a})`; g.fillRect(x,y,w,h); }
+      g.strokeStyle = 'rgba(29,29,31,.12)'; g.strokeRect(x+.5,y+.5,w,h);
+      g.fillStyle = a>0 ? ACC : 'rgba(29,29,31,.55)'; g.fillText(nname(noteAt(c,r)), x+12, y+h-10); }
+  } else if (mode==='drums'){
+    for (let p=0;p<PADS;p++){ const c = p%4, r = Math.floor(p/4); const x = c/4*W, y = r/2*H, w = W/4, h = H/2; const f = flashes.filter(fl => fl.k==='p'+p).pop(); const a = f ? Math.max(0, 1-(now-f.t)/300) : 0;
+      g.fillStyle = `rgba(29,29,31,${.04 + .0*a})`; roundRect(x+8,y+8,w-16,h-16,22); g.fill();
+      if (a>0){ g.fillStyle = `rgba(255,79,31,${.35*a})`; roundRect(x+8,y+8,w-16,h-16,22); g.fill(); }
+      g.fillStyle = 'rgba(29,29,31,.6)'; g.font = '600 15px Inter, sans-serif'; g.fillText(DRUMS[p], x+24, y+h-24); }
+  } else {
+    const s = SCALES[$('scale').value]; g.strokeStyle = 'rgba(29,29,31,.1)';
+    for (let o=0;o<3;o++) s.steps.forEach(st => { const semi = st+12*o; if (semi>24) return; const x = semi/24*W; g.beginPath(); g.moveTo(x,0); g.lineTo(x,H); g.stroke(); if (st===0){ g.fillStyle='rgba(29,29,31,.5)'; g.fillText(nname(s.root+12*o), x+6, H-10); } });
+    g.fillStyle = 'rgba(29,29,31,.45)'; g.textBaseline='top'; g.fillText('higher hand = louder', 14, 52); g.textBaseline='bottom';
+  }
+  // hands
+  const n = hands.length; $('hudHands').textContent = source==='camera' ? (n ? n + (n===1?' hand':' hands') : 'No hands') : 'Mouse';
+  let thSeen = false;
+  hands.forEach((lm, hi) => {
+    const P = lm.map(p => toScreen(p, vr));
+    g.strokeStyle = 'rgba(29,29,31,.85)'; g.lineWidth = 2; g.lineCap = 'round';
+    BONES.forEach(([a,b]) => { g.beginPath(); g.moveTo(P[a].x,P[a].y); g.lineTo(P[b].x,P[b].y); g.stroke(); });
+    P.forEach((p,i) => { g.beginPath(); g.arc(p.x,p.y, i===4||i===8 ? 6 : 3.2, 0, Math.PI*2); g.fillStyle = i===4||i===8 ? ACC : '#fff'; g.fill(); g.lineWidth = 1.5; g.strokeStyle = '#1D1D1F'; g.stroke(); });
+    const palm = d2(lm[0], lm[9]) || .1, pinchD = d2(lm[4], lm[8]) / palm; const st = handState[hi] || (handState[hi] = {pinched:false});
+    const mid = {x:(P[4].x+P[8].x)/2, y:(P[4].y+P[8].y)/2};
+    // pinch meter ring
+    const k = Math.max(0, Math.min(1, (0.9 - pinchD)/0.6)); g.beginPath(); g.arc(mid.x, mid.y, 18, -Math.PI/2, -Math.PI/2 + k*Math.PI*2); g.strokeStyle = ACC; g.lineWidth = 3; g.stroke();
+    if (mode==='theremin'){ thSeen = true; if (hi===0){ thereminOn(); const vol = Math.max(0, Math.min(1, 1 - mid.y/H)); thereminSet(thFreq(mid.x), vol, vol); thX = mid.x; thY = mid.y; } }
+    else { if (!st.pinched && pinchD < .32){ st.pinched = true; trigger(mid.x, mid.y, Math.min(1, .55 + (st.speed||0)*.4)); } else if (st.pinched && pinchD > .5){ st.pinched = false; } }
+    st.speed = st.last ? Math.min(1, Math.hypot(mid.x-st.last.x, mid.y-st.last.y)/40) : 0; st.last = mid;
+  });
+  if (mode==='theremin' && source==='camera' && !thSeen) thereminOff();
+  if (mode==='theremin' && thX!==null && (thSeen || pDown)){ g.beginPath(); g.arc(thX, thY, 26, 0, Math.PI*2); g.strokeStyle = ACC; g.lineWidth = 3; g.stroke(); g.beginPath(); g.moveTo(thX,0); g.lineTo(thX,H); g.strokeStyle='rgba(255,79,31,.35)'; g.lineWidth = 1; g.stroke(); }
+  // ripples
+  for (let i=ripples.length-1;i>=0;i--){ const r = ripples[i], a = (now - r.t)/600; if (a>1){ ripples.splice(i,1); continue; } g.beginPath(); g.arc(r.x, r.y, 10 + a*70, 0, Math.PI*2); g.strokeStyle = `rgba(255,79,31,${1-a})`; g.lineWidth = 2.5; g.stroke(); g.fillStyle = `rgba(29,29,31,${1-a})`; g.font = '700 16px Inter, sans-serif'; g.textBaseline='middle'; g.textAlign='center'; g.fillText(r.label, r.x, r.y - 34 - a*20); g.textAlign='left'; g.textBaseline='bottom'; }
+  while (flashes.length > 64) flashes.shift();
+}
+function roundRect(x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
